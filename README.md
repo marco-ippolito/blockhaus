@@ -1,2 +1,3 @@
-# dodici
-new node.js http server
+# http-server-addon
+
+http server + socket for nodejs
