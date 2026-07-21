@@ -89,3 +89,23 @@ test("respects an explicit content-length from the response", async () => {
 	assert.doesNotMatch(out, /transfer-encoding/);
 	assert.ok(out.endsWith("\r\n\r\n12345"));
 });
+
+for (const value of ["", "00", "01", "+1", "-1", "1.0", "1x"]) {
+	test(`rejects invalid response content-length ${JSON.stringify(value)}`, async () => {
+		await assert.rejects(
+			serialize(new Response("x", { headers: { "content-length": value } })),
+			/invalid response content-length/,
+		);
+	});
+}
+
+test("rejects response content-length above the safe integer range", async () => {
+	await assert.rejects(
+		serialize(
+			new Response("x", {
+				headers: { "content-length": "9007199254740992" },
+			}),
+		),
+		/response content-length is too large/,
+	);
+});

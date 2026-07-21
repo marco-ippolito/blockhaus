@@ -15,6 +15,13 @@ npm run check
 `npm run check` runs Biome's CI command, verifies public TypeScript
 declarations, and runs the complete stock-Node suite with enforced coverage.
 
+Run `npm run benchmark` for the Node-core comparison across HTTP/1 and HTTP/2.
+GitHub Actions runs the same benchmark in a separate job after the quality
+gate. Override sample sizing with `BENCHMARK_WARMUP`, `BENCHMARK_REQUESTS`,
+`BENCHMARK_CONCURRENCY`, and `BENCHMARK_SAMPLES` when profiling locally.
+The benchmark is an independent private package; see
+[`benchmark/README.md`](benchmark/README.md) for its methodology and commands.
+
 ## HTTP/3 tests
 
 HTTP/3 tests require a Node binary compiled with experimental QUIC support:

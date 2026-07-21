@@ -24,8 +24,14 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npm run check
-      - run: npm pack --dry-run --ignore-scripts
+      - name: Biome
+        run: npm run lint
+      - name: TypeScript declarations
+        run: npm run types
+      - name: Stock Node tests and coverage
+        run: npm test
+      - name: Package contents
+        run: npm pack --dry-run --ignore-scripts
 
   quic:
     name: HTTP/3 (QUIC-enabled Node)
@@ -61,3 +67,19 @@ jobs:
         run: ninja -C out/Release -j 2
       - name: Run complete suite with HTTP/3 enabled
         run: ./node/out/Release/node --experimental-quic --test --test-concurrency=1 dodici/test/*.test.js
+
+  benchmark:
+    name: Performance benchmarks
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Install benchmark dependencies
+        run: npm ci --prefix benchmark
+      - run: npm run benchmark

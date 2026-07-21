@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "description": "Dodici throughput as a percentage of matching Node core throughput",
+  "recordedWith": "Node 24.18.0 on darwin-arm64; replace after stable Node 26 CI runs",
+  "results": {
+    "http/1/no-content": 77.7,
+    "http/1/request-url": 54.7,
+    "http/1/request-header": 56.4,
+    "h2c/no-content": 76.6,
+    "h2c/request-url": 60.1,
+    "h2c/request-header": 62.4
+  }
+}

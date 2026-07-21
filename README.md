@@ -376,12 +376,20 @@ message in front of it.
 nvm use      # v26
 npm run check # Biome CI, declarations, all tests, and enforced coverage
 npm run fix   # apply Biome-safe formatting and lint fixes
+npm run benchmark # Node core vs Dodici over HTTP/1 and HTTP/2
 ```
 
 `npm test` always runs every regular, security, unit, and end-to-end test with
 coverage thresholds enabled. HTTP/3 source is excluded from the stock-runtime
 coverage threshold and exercised separately with the QUIC-enabled command
 below.
+
+The benchmark runs matching no-content, request URL, and request-header
+workloads against `node:http`, `node:http2`, and Dodici. It validates every
+response, warms each server, reports the median of five samples, and records
+relative throughput in the workflow summary. Its relative floor is a coarse
+regression guard, not a claim that the APIs have equal costs: Dodici constructs
+standards-compatible Fetch objects when the handler accesses them.
 
 The HTTP/3 tests self-skip on a binary without QUIC support. To run them, use a
 QUIC-enabled build:
