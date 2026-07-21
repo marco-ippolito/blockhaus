@@ -1,26 +1,59 @@
 {
-    "name": "dodici",
-    "version": "0.0.1",
-    "description": "",
-    "main": "lib/http-server.js",
-    "gypfile": true,
-    "type": "module",
-    "scripts": {
-        "build": "node-gyp rebuild",
-        "clean": "node-gyp clean",
-        "lint": "biome lint lib",
-        "lint-fix": "biome lint lib test --fix",
-        "format": "biome format lib test --write",
-        "start": "node ./test/index.test.js",
-        "test": "node --test"
-    },
-    "devDependencies": {
-        "@biomejs/biome": "^1.5.3"
-    },
-    "dependencies": {
-        "@perseveranza-pets/milo": "^0.1.0",
-        "bindings": "~1.5.0",
-        "node-addon-api": "^7.0.0",
-        "node-gyp": "^10.0.1"
+  "name": "dodici",
+  "version": "0.0.1",
+  "description": "One serve() API over three HTTP stacks: HTTP/1.1 (node:net + milo), HTTP/2 (node:http2), HTTP/3 (node:quic).",
+  "author": "Marco Ippolito",
+  "type": "module",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./lib/index.js"
     }
+  },
+  "files": [
+    "lib",
+    "index.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marco-ippolito/dodici.git"
+  },
+  "bugs": "https://github.com/marco-ippolito/dodici/issues",
+  "homepage": "https://github.com/marco-ippolito/dodici#readme",
+  "keywords": [
+    "http",
+    "http2",
+    "http3",
+    "server",
+    "fetch"
+  ],
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "check": "npm run lint && npm run types && npm test",
+    "lint": "biome ci .",
+    "fix": "biome check --write .",
+    "test": "node --test --experimental-test-coverage --test-coverage-exclude=lib/h3/** --test-coverage-exclude=test/** --test-coverage-lines=85 --test-coverage-branches=80 --test-coverage-functions=75",
+    "types": "tsc --noEmit",
+    "prepack": "npm run check"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.5",
+    "@types/node": "^26.1.1",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@perseveranza-pets/milo": "^0.8.0"
+  }
 }

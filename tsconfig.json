@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "strict": true,
+    "types": ["node"]
+  },
+  "include": ["index.d.ts", "types-test/**/*.ts"]
+}
