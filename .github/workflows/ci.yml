@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
@@ -42,7 +42,7 @@ jobs:
       # when we intentionally want to rebuild from the latest Node main.
       QUIC_BINARY_CACHE_VERSION: v2
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           path: blockhaus
       - name: Restore QUIC-enabled Node binary
@@ -54,7 +54,7 @@ jobs:
       - name: Check out Node main
         id: node-checkout
         if: steps.quic-binary.outputs.cache-hit != 'true'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: nodejs/node
           ref: main
@@ -101,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
