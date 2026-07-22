@@ -115,6 +115,47 @@ test("client RST mid-response leaves the session healthy", async () => {
 	}
 });
 
+test("h2 flushes the first Web Stream chunk before a delayed second chunk", async () => {
+	const releaseSecond = Promise.withResolvers();
+	const server = await start(
+		() =>
+			new Response(
+				new ReadableStream({
+					async start(controller) {
+						controller.enqueue(new TextEncoder().encode("first"));
+						await releaseSecond.promise;
+						controller.enqueue(new TextEncoder().encode("second"));
+						controller.close();
+					},
+				}),
+			),
+		{ tls: { key, cert } },
+	);
+	const client = http2.connect(`https://localhost:${server.port}`, {
+		ca: cert,
+	});
+	try {
+		const stream = client.request({ ":path": "/" });
+		const first = await new Promise((resolve, reject) => {
+			stream.once("data", (chunk) => resolve(chunk.toString()));
+			stream.once("error", reject);
+			stream.end();
+		});
+		assert.strictEqual(first, "first");
+		releaseSecond.resolve();
+		const rest = [];
+		stream.on("data", (chunk) => rest.push(chunk));
+		await new Promise((resolve, reject) => {
+			stream.once("end", resolve);
+			stream.once("error", reject);
+		});
+		assert.strictEqual(Buffer.concat(rest).toString(), "second");
+	} finally {
+		client.destroy();
+		await server.close({ force: true });
+	}
+});
+
 test("duplicate request headers are combined on h2", async () => {
 	let combined;
 	const server = await start(

@@ -13,9 +13,9 @@ const handlers = {
 			response.statusCode = 204;
 			response.end();
 		},
-		nodeHttp2: (stream) => {
-			stream.respond({ ":status": 204 });
-			stream.end();
+		nodeHttp2: (_request, response) => {
+			response.statusCode = 204;
+			response.end();
 		},
 	},
 	"request-url": {
@@ -27,10 +27,9 @@ const handlers = {
 			void request.url;
 			response.end("ok");
 		},
-		nodeHttp2: (stream, headers) => {
-			void headers[":path"];
-			stream.respond({ ":status": 200 });
-			stream.end("ok");
+		nodeHttp2: (request, response) => {
+			void request.url;
+			response.end("ok");
 		},
 	},
 	"request-header": {
@@ -39,9 +38,8 @@ const handlers = {
 		nodeHttp: (request, response) => {
 			response.end(request.headers["x-benchmark"]);
 		},
-		nodeHttp2: (stream, headers) => {
-			stream.respond({ ":status": 200 });
-			stream.end(headers["x-benchmark"]);
+		nodeHttp2: (request, response) => {
+			response.end(request.headers["x-benchmark"]);
 		},
 	},
 };
@@ -62,7 +60,7 @@ if (implementation === "dodici") {
 	const server =
 		protocol === "http/1"
 			? http.createServer(handler.nodeHttp)
-			: http2.createServer().on("stream", handler.nodeHttp2);
+			: http2.createServer(handler.nodeHttp2);
 	await new Promise((resolve, reject) => {
 		server.once("error", reject);
 		server.listen(0, HOST, resolve);

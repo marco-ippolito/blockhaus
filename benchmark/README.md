@@ -3,7 +3,8 @@
 This private package compares Dodici with the corresponding Node core server:
 
 - `node:http` and Dodici over HTTP/1.1
-- `node:http2` and Dodici over cleartext HTTP/2
+- `node:http2`'s native request/response server API and Dodici over cleartext
+  HTTP/2
 
 Both implementations receive the same requests from the same protocol-specific
 client. Every response is validated before its timing contributes to a result.
