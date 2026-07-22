@@ -52,13 +52,13 @@ jobs:
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Restore QUIC-enabled Node binary
         id: quic-binary
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: node/out/Release/node
           key: node-quic-binary-v1-${{ runner.os }}-${{ steps.node-revision.outputs.sha }}
       - name: Restore incremental Node build cache
         if: steps.quic-binary.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: node/out
           key: node-quic-${{ runner.os }}-${{ steps.node-revision.outputs.sha }}
