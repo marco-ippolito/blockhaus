@@ -44,6 +44,11 @@ Ratios remove much of the variation between machines, but benchmark noise still
 matters. Update the baseline only from repeated full CI runs, never from the
 short smoke command. The relative floor catches major regressions.
 
+GitHub's shared hosted runners publish the recap with the floor disabled. They
+currently impose a stable scheduling floor on non-empty Fetch response bodies
+that is not reproducible on a dedicated Node 26 machine. The default 45% floor
+remains active for local and dedicated-runner executions.
+
 ## Why the runner is local
 
 The unpublished `node-bench` package cannot be installed from npm. Common

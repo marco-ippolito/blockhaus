@@ -93,4 +93,10 @@ jobs:
       - run: npm ci
       - name: Install benchmark dependencies
         run: npm ci --prefix benchmark
-      - run: npm run benchmark
+      - name: Run comparative benchmarks
+        run: npm run benchmark
+        env:
+          # Hosted runners impose a repeatable ~1 ms scheduling floor on
+          # non-empty Fetch Response bodies. Keep the full report, but enforce
+          # ratios only on dedicated/local benchmark machines.
+          BENCHMARK_MIN_RELATIVE: "0"
