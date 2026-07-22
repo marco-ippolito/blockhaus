@@ -47,7 +47,7 @@ jobs:
           path: blockhaus
       - name: Restore QUIC-enabled Node binary
         id: quic-binary
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .cache/node-quic/node
           key: node-main-quic-binary-${{ env.QUIC_BINARY_CACHE_VERSION }}-${{ runner.os }}-${{ runner.arch }}
@@ -61,7 +61,7 @@ jobs:
           path: node
       - name: Restore incremental Node build cache
         if: steps.quic-binary.outputs.cache-hit != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: node/out
           key: node-main-quic-build-${{ env.QUIC_BINARY_CACHE_VERSION }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.node-checkout.outputs.commit }}
