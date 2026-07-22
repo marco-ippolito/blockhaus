@@ -11,6 +11,9 @@ const SAMPLES = Number(process.env.BENCHMARK_SAMPLES ?? 5);
 const MIN_RELATIVE_THROUGHPUT = Number(
 	process.env.BENCHMARK_MIN_RELATIVE ?? 0.45,
 );
+const MAX_BASELINE_REGRESSION = Number(
+	process.env.BENCHMARK_MAX_REGRESSION ?? Number.POSITIVE_INFINITY,
+);
 const HOST = "127.0.0.1";
 const reference = JSON.parse(
 	await readFile(
@@ -278,6 +281,9 @@ const regressions = results.filter(
 		result.implementation === "dodici" &&
 		relative(result) < MIN_RELATIVE_THROUGHPUT * 100,
 );
+const baselineRegressions = recap.filter(
+	(row) => row.change !== null && row.change < -MAX_BASELINE_REGRESSION * 100,
+);
 
 if (process.env.GITHUB_STEP_SUMMARY) {
 	const rows = results
@@ -301,5 +307,11 @@ if (process.env.GITHUB_STEP_SUMMARY) {
 if (regressions.length > 0) {
 	throw new Error(
 		`Dodici fell below ${(MIN_RELATIVE_THROUGHPUT * 100).toFixed(0)}% of Node core in: ${regressions.map((result) => `${result.protocol}/${result.scenario}`).join(", ")}`,
+	);
+}
+
+if (baselineRegressions.length > 0) {
+	throw new Error(
+		`Dodici regressed by more than ${(MAX_BASELINE_REGRESSION * 100).toFixed(0)}% from the benchmark baseline in: ${baselineRegressions.map((row) => `${row.protocol}/${row.scenario} (${row.change.toFixed(1)}%)`).join(", ")}`,
 	);
 }

@@ -37,6 +37,7 @@ The root `npm run benchmark` command delegates here. Available tuning variables:
 | `BENCHMARK_SAMPLES` | 5 | Samples used to select the median |
 | `BENCHMARK_MIN_RELATIVE` | 0.45 | Minimum Dodici/Node throughput ratio |
 | `BENCHMARK_BASELINE` | `baseline.json` | Comparison baseline file |
+| `BENCHMARK_MAX_REGRESSION` | disabled | Maximum slowdown from the selected baseline |
 
 The recap compares the current Dodici/Node ratio with the checked-in
 `baseline.json`; a negative change means the current implementation is slower.
@@ -44,10 +45,10 @@ Ratios remove much of the variation between machines, but benchmark noise still
 matters. Update the baseline only from repeated full CI runs, never from the
 short smoke command. The relative floor catches major regressions.
 
-GitHub's shared hosted runners publish the recap with the floor disabled. They
-currently impose a stable scheduling floor on non-empty Fetch response bodies
-that is not reproducible on a dedicated Node 26 machine. The default 45% floor
-remains active for local and dedicated-runner executions.
+GitHub's shared hosted runners have a distinct checked-in `baseline-ci.json`.
+The CI job fails if any scenario is more than 20% slower than that baseline.
+The default 45% Node-relative floor remains active for local and dedicated
+runner executions.
 
 ## Why the runner is local
 
