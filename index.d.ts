@@ -1,14 +1,14 @@
 export type Protocol = "h1" | "h2" | "h3";
 
 export declare const diagnosticChannels: Readonly<{
-	serverListening: "dodici.server.listening";
-	serverClose: "dodici.server.close";
-	requestStart: "dodici.request.start";
-	requestEnd: "dodici.request.end";
-	requestReject: "dodici.request.reject";
-	connectStart: "dodici.connect.start";
-	connectEnd: "dodici.connect.end";
-	error: "dodici.error";
+	serverListening: "blockhaus.server.listening";
+	serverClose: "blockhaus.server.close";
+	requestStart: "blockhaus.request.start";
+	requestEnd: "blockhaus.request.end";
+	requestReject: "blockhaus.request.reject";
+	connectStart: "blockhaus.connect.start";
+	connectEnd: "blockhaus.connect.end";
+	error: "blockhaus.error";
 }>;
 
 /** ALPN identifiers offered on TLS. */

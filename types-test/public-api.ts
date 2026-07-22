@@ -8,10 +8,11 @@ import {
 	type ServerContext,
 	serve,
 	withTrailers,
-} from "dodici";
+} from "blockhaus";
 
-const requestEndChannel: "dodici.request.end" = diagnosticChannels.requestEnd;
-const requestRejectChannel: "dodici.request.reject" =
+const requestEndChannel: "blockhaus.request.end" =
+	diagnosticChannels.requestEnd;
+const requestRejectChannel: "blockhaus.request.reject" =
 	diagnosticChannels.requestReject;
 void requestEndChannel;
 void requestRejectChannel;

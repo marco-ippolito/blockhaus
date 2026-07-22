@@ -8,7 +8,7 @@ const NO_CONTENT = new Response(null, { status: 204 });
 
 const handlers = {
 	"no-content": {
-		dodici: () => NO_CONTENT,
+		blockhaus: () => NO_CONTENT,
 		nodeHttp: (_request, response) => {
 			response.statusCode = 204;
 			response.end();
@@ -19,7 +19,7 @@ const handlers = {
 		},
 	},
 	"request-url": {
-		dodici: (context) => {
+		blockhaus: (context) => {
 			void context.url;
 			return new Response("ok");
 		},
@@ -33,7 +33,7 @@ const handlers = {
 		},
 	},
 	"request-header": {
-		dodici: (context) => new Response(context.header("x-benchmark")),
+		blockhaus: (context) => new Response(context.header("x-benchmark")),
 		nodeHttp: (request, response) => {
 			response.end(request.headers["x-benchmark"]);
 		},
@@ -44,14 +44,17 @@ const handlers = {
 };
 
 const handler = handlers[scenario];
-if (!handler || !["node", "dodici"].includes(implementation)) {
+if (!handler || !["node", "blockhaus"].includes(implementation)) {
 	throw new Error("invalid benchmark server arguments");
 }
 
 let close;
 let port;
-if (implementation === "dodici") {
-	const server = serve({ fetch: handler.dodici }, { hostname: HOST, port: 0 });
+if (implementation === "blockhaus") {
+	const server = serve(
+		{ fetch: handler.blockhaus },
+		{ hostname: HOST, port: 0 },
+	);
 	await server.listen();
 	port = server.port;
 	close = () => server.close({ force: true });

@@ -17,8 +17,8 @@ const MAX_BASELINE_REGRESSION = Number(
 const BASELINE_METRIC = process.env.BENCHMARK_BASELINE_METRIC ?? "ratio";
 const CPU_PROFILE = process.env.BENCHMARK_CPU_PROFILE;
 const CPU_PROFILE_DIR = process.env.BENCHMARK_CPU_PROFILE_DIR;
-if (!["ratio", "dodici-rps"].includes(BASELINE_METRIC)) {
-	throw new Error("BENCHMARK_BASELINE_METRIC must be ratio or dodici-rps");
+if (!["ratio", "blockhaus-rps"].includes(BASELINE_METRIC)) {
+	throw new Error("BENCHMARK_BASELINE_METRIC must be ratio or blockhaus-rps");
 }
 if (MAX_BASELINE_REGRESSION < 0) {
 	throw new Error("BENCHMARK_MAX_REGRESSION must not be negative");
@@ -207,33 +207,33 @@ function summarize(implementation, protocol, scenario, samples) {
 
 async function measurePair(protocol, scenario, createClient) {
 	const nodeServer = await startServer("node", protocol, scenario);
-	const dodiciServer = await startServer("dodici", protocol, scenario);
+	const blockhausServer = await startServer("blockhaus", protocol, scenario);
 	const nodeClient = createClient(nodeServer.port, scenario);
-	const dodiciClient = createClient(dodiciServer.port, scenario);
+	const blockhausClient = createClient(blockhausServer.port, scenario);
 	try {
 		// Warm both implementations in alternating order. Timed rounds reverse
 		// order each time so thermal drift and transient host load affect each
 		// side symmetrically instead of favoring whichever server runs first.
 		await batch(nodeClient.request, WARMUP_REQUESTS);
-		await batch(dodiciClient.request, WARMUP_REQUESTS);
+		await batch(blockhausClient.request, WARMUP_REQUESTS);
 		const nodeSamples = [];
-		const dodiciSamples = [];
+		const blockhausSamples = [];
 		for (let index = 0; index < SAMPLES; index++) {
 			if (index % 2 === 0) {
 				nodeSamples.push(await sample(nodeClient.request));
-				dodiciSamples.push(await sample(dodiciClient.request));
+				blockhausSamples.push(await sample(blockhausClient.request));
 			} else {
-				dodiciSamples.push(await sample(dodiciClient.request));
+				blockhausSamples.push(await sample(blockhausClient.request));
 				nodeSamples.push(await sample(nodeClient.request));
 			}
 		}
 		return [
 			summarize("node", protocol, scenario, nodeSamples),
-			summarize("dodici", protocol, scenario, dodiciSamples),
+			summarize("blockhaus", protocol, scenario, blockhausSamples),
 		];
 	} finally {
-		await Promise.all([nodeClient.close(), dodiciClient.close()]);
-		await Promise.all([nodeServer.close(), dodiciServer.close()]);
+		await Promise.all([nodeClient.close(), blockhausClient.close()]);
+		await Promise.all([nodeServer.close(), blockhausServer.close()]);
 	}
 }
 
@@ -273,7 +273,7 @@ function resultKey(result) {
 }
 
 const recap = results
-	.filter((result) => result.implementation === "dodici")
+	.filter((result) => result.implementation === "blockhaus")
 	.map((result) => {
 		const nodeResult = results.find(
 			(candidate) =>
@@ -286,12 +286,12 @@ const recap = results
 		const gateBaseline =
 			BASELINE_METRIC === "ratio"
 				? reference.results[resultKey(result)]
-				: reference.dodiciRequestsPerSecond?.[resultKey(result)];
+				: reference.blockhausRequestsPerSecond?.[resultKey(result)];
 		return {
 			protocol: result.protocol,
 			scenario: result.scenario,
 			node: nodeResult.median,
-			dodici: result.median,
+			blockhaus: result.median,
 			current,
 			gateCurrent,
 			gateBaseline,
@@ -315,7 +315,7 @@ console.table(
 		protocol: row.protocol,
 		scenario: row.scenario,
 		"Node req/s": row.node.toFixed(0),
-		"Dodici req/s": row.dodici.toFixed(0),
+		"Blockhaus req/s": row.blockhaus.toFixed(0),
 		"current ratio": `${row.current.toFixed(1)}%`,
 		"gate current": formatGateValue(row.gateCurrent),
 		"gate baseline": formatGateValue(row.gateBaseline),
@@ -328,7 +328,7 @@ console.table(
 
 const regressions = results.filter(
 	(result) =>
-		result.implementation === "dodici" &&
+		result.implementation === "blockhaus" &&
 		relative(result) < MIN_RELATIVE_THROUGHPUT * 100,
 );
 const baselineRegressions = recap.filter(
@@ -346,18 +346,18 @@ if (process.env.GITHUB_STEP_SUMMARY) {
 	const recapRows = recap
 		.map(
 			(row) =>
-				`| ${row.protocol} | ${row.scenario} | ${row.node.toFixed(0)} | ${row.dodici.toFixed(0)} | ${row.current.toFixed(1)}% | ${formatGateValue(row.gateBaseline)} | ${row.change === null ? "n/a" : `${row.change >= 0 ? "+" : ""}${row.change.toFixed(1)}%`} |`,
+				`| ${row.protocol} | ${row.scenario} | ${row.node.toFixed(0)} | ${row.blockhaus.toFixed(0)} | ${row.current.toFixed(1)}% | ${formatGateValue(row.gateBaseline)} | ${row.change === null ? "n/a" : `${row.change >= 0 ? "+" : ""}${row.change.toFixed(1)}%`} |`,
 		)
 		.join("\n");
 	await appendFile(
 		process.env.GITHUB_STEP_SUMMARY,
-		`## Performance recap\n\nThe blocking gate compares ${BASELINE_METRIC === "ratio" ? "the Dodici/Node ratio" : "Dodici throughput"} with the checked-in baseline. Negative means slower.\n\n| Protocol | Scenario | Node req/s | Dodici req/s | Current ratio | Gate baseline | Change |\n| --- | --- | ---: | ---: | ---: | ---: | ---: |\n${recapRows}\n\n<details><summary>Detailed samples</summary>\n\n${SAMPLES} samples of ${MEASURED_REQUESTS.toLocaleString("en-US")} requests after ${WARMUP_REQUESTS.toLocaleString("en-US")} warmups, concurrency ${CONCURRENCY}.\n\n| Protocol | Scenario | Server | Median req/s | Min | Max | Relative |\n| --- | --- | --- | ---: | ---: | ---: | ---: |\n${rows}\n\n</details>\n`,
+		`## Performance recap\n\nThe blocking gate compares ${BASELINE_METRIC === "ratio" ? "the Blockhaus/Node ratio" : "Blockhaus throughput"} with the checked-in baseline. Negative means slower.\n\n| Protocol | Scenario | Node req/s | Blockhaus req/s | Current ratio | Gate baseline | Change |\n| --- | --- | ---: | ---: | ---: | ---: | ---: |\n${recapRows}\n\n<details><summary>Detailed samples</summary>\n\n${SAMPLES} samples of ${MEASURED_REQUESTS.toLocaleString("en-US")} requests after ${WARMUP_REQUESTS.toLocaleString("en-US")} warmups, concurrency ${CONCURRENCY}.\n\n| Protocol | Scenario | Server | Median req/s | Min | Max | Relative |\n| --- | --- | --- | ---: | ---: | ---: | ---: |\n${rows}\n\n</details>\n`,
 	);
 }
 
 if (regressions.length > 0) {
 	throw new Error(
-		`Dodici fell below ${(MIN_RELATIVE_THROUGHPUT * 100).toFixed(0)}% of Node core in: ${regressions.map((result) => `${result.protocol}/${result.scenario}`).join(", ")}`,
+		`Blockhaus fell below ${(MIN_RELATIVE_THROUGHPUT * 100).toFixed(0)}% of Node core in: ${regressions.map((result) => `${result.protocol}/${result.scenario}`).join(", ")}`,
 	);
 }
 
@@ -369,6 +369,6 @@ if (missingBaselines.length > 0) {
 
 if (baselineRegressions.length > 0) {
 	throw new Error(
-		`Dodici regressed by more than ${(MAX_BASELINE_REGRESSION * 100).toFixed(0)}% from the benchmark baseline in: ${baselineRegressions.map((row) => `${row.protocol}/${row.scenario} (${row.change.toFixed(1)}%)`).join(", ")}`,
+		`Blockhaus regressed by more than ${(MAX_BASELINE_REGRESSION * 100).toFixed(0)}% from the benchmark baseline in: ${baselineRegressions.map((row) => `${row.protocol}/${row.scenario} (${row.change.toFixed(1)}%)`).join(", ")}`,
 	);
 }

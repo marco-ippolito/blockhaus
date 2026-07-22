@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Conservative Dodici/Node throughput ratios observed on GitHub-hosted Ubuntu runners",
+  "description": "Conservative Blockhaus/Node throughput ratios observed on GitHub-hosted Ubuntu runners",
   "recordedWith": "Node 26.5.0 on GitHub-hosted ubuntu-24.04 with isolated server processes",
   "results": {
     "http/1/no-content": 93.7,
@@ -10,7 +10,7 @@
     "h2c/request-url": 66.4,
     "h2c/request-header": 64.8
   },
-  "dodiciRequestsPerSecond": {
+  "blockhausRequestsPerSecond": {
     "http/1/no-content": 14000,
     "http/1/request-url": 9500,
     "http/1/request-header": 9000,
