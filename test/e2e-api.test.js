@@ -2,7 +2,7 @@ import assert from "node:assert";
 import http2 from "node:http2";
 import net from "node:net";
 import { test } from "node:test";
-import { serve } from "../lib/index.js";
+import { Context, serve } from "../lib/index.js";
 import { cert, key } from "./fixtures/tls.js";
 import { start } from "./helpers.js";
 
@@ -164,6 +164,21 @@ test("ctx.waitUntil work is awaited during graceful close", async () => {
 	await (await fetch(server.url)).text();
 	await server.close();
 	assert.strictEqual(done, true);
+});
+
+test("Context preserves the public metadata.waitUntil hook", () => {
+	const tracked = [];
+	const promise = Promise.resolve();
+	const ctx = new Context(new Request("https://example.com/"), {
+		remoteAddress: { address: "127.0.0.1", port: 1234, family: "IPv4" },
+		httpVersion: "1.1",
+		waitUntil(value) {
+			tracked.push(value);
+		},
+	});
+
+	ctx.waitUntil(promise);
+	assert.deepStrictEqual(tracked, [promise]);
 });
 
 test("server.busy returns a retryable 503 without dispatching", async () => {

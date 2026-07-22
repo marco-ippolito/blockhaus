@@ -48,6 +48,22 @@ test("HEAD omits the body but keeps framing headers", async () => {
 	assert.ok(out.endsWith("\r\n\r\n"));
 });
 
+test("HEAD cancels a streaming body after committing its headers", async () => {
+	let cancelled = false;
+	const body = new ReadableStream({
+		pull(controller) {
+			controller.enqueue(new TextEncoder().encode("never sent"));
+		},
+		cancel() {
+			cancelled = true;
+		},
+	});
+	const out = await serialize(new Response(body), { isHead: true });
+	assert.strictEqual(cancelled, true);
+	assert.ok(out.endsWith("\r\n\r\n"));
+	assert.doesNotMatch(out, /never sent/);
+});
+
 test("204 has no body and no content-length", async () => {
 	const out = await serialize(new Response(null, { status: 204 }));
 	assert.doesNotMatch(out, /content-length/);
