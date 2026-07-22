@@ -37,33 +37,36 @@ jobs:
     name: HTTP/3 (QUIC-enabled Node)
     needs: quality
     runs-on: ubuntu-latest
+    env:
+      # Cache keys are repository-wide, not workflow-specific. Bump this only
+      # when we intentionally want to rebuild from the latest Node main.
+      QUIC_BINARY_CACHE_VERSION: v2
     steps:
       - uses: actions/checkout@v6
         with:
           path: dodici
-      - uses: actions/checkout@v6
-        with:
-          repository: nodejs/node
-          ref: main
-          path: node
-      - name: Resolve Node revision
-        id: node-revision
-        working-directory: node
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Restore QUIC-enabled Node binary
         id: quic-binary
         uses: actions/cache@v4
         with:
-          path: node/out/Release/node
-          key: node-quic-binary-v1-${{ runner.os }}-${{ steps.node-revision.outputs.sha }}
+          path: .cache/node-quic/node
+          key: node-main-quic-binary-${{ env.QUIC_BINARY_CACHE_VERSION }}-${{ runner.os }}-${{ runner.arch }}
+      - name: Check out Node main
+        id: node-checkout
+        if: steps.quic-binary.outputs.cache-hit != 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: nodejs/node
+          ref: main
+          path: node
       - name: Restore incremental Node build cache
         if: steps.quic-binary.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: node/out
-          key: node-quic-${{ runner.os }}-${{ steps.node-revision.outputs.sha }}
+          key: node-main-quic-build-${{ env.QUIC_BINARY_CACHE_VERSION }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.node-checkout.outputs.commit }}
           restore-keys: |
-            node-quic-${{ runner.os }}-
+            node-main-quic-build-${{ env.QUIC_BINARY_CACHE_VERSION }}-${{ runner.os }}-${{ runner.arch }}-
       - uses: actions/setup-node@v6
         with:
           node-version-file: dodici/.nvmrc
@@ -84,9 +87,12 @@ jobs:
       - name: Build QUIC-enabled Node
         if: steps.quic-binary.outputs.cache-hit != 'true'
         working-directory: node
-        run: ninja -C out/Release -j 4
+        run: |
+          ninja -C out/Release -j 4
+          mkdir -p ../.cache/node-quic
+          cp out/Release/node ../.cache/node-quic/node
       - name: Run complete suite with HTTP/3 enabled
-        run: ./node/out/Release/node --experimental-quic --test --test-concurrency=1 dodici/test/*.test.js
+        run: ./.cache/node-quic/node --experimental-quic --test --test-concurrency=1 dodici/test/*.test.js
 
   benchmark:
     name: Performance benchmarks
