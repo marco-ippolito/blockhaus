@@ -37,7 +37,7 @@ jobs:
     name: HTTP/3 (QUIC-enabled Node)
     needs: quality
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v6
         with:
@@ -47,6 +47,17 @@ jobs:
           repository: nodejs/node
           ref: main
           path: node
+      - name: Resolve Node revision
+        id: node-revision
+        working-directory: node
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Restore Node build cache
+        uses: actions/cache@v4
+        with:
+          path: node/out
+          key: node-quic-${{ runner.os }}-${{ steps.node-revision.outputs.sha }}
+          restore-keys: |
+            node-quic-${{ runner.os }}-
       - uses: actions/setup-node@v6
         with:
           node-version-file: dodici/.nvmrc
@@ -64,7 +75,7 @@ jobs:
         run: ./configure --ninja --experimental-quic
       - name: Build QUIC-enabled Node
         working-directory: node
-        run: ninja -C out/Release -j 2
+        run: ninja -C out/Release -j 4
       - name: Run complete suite with HTTP/3 enabled
         run: ./node/out/Release/node --experimental-quic --test --test-concurrency=1 dodici/test/*.test.js
 
