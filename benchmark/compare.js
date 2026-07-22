@@ -15,6 +15,8 @@ const MAX_BASELINE_REGRESSION = Number(
 	process.env.BENCHMARK_MAX_REGRESSION ?? Number.POSITIVE_INFINITY,
 );
 const BASELINE_METRIC = process.env.BENCHMARK_BASELINE_METRIC ?? "ratio";
+const CPU_PROFILE = process.env.BENCHMARK_CPU_PROFILE;
+const CPU_PROFILE_DIR = process.env.BENCHMARK_CPU_PROFILE_DIR;
 if (!["ratio", "dodici-rps"].includes(BASELINE_METRIC)) {
 	throw new Error("BENCHMARK_BASELINE_METRIC must be ratio or dodici-rps");
 }
@@ -47,10 +49,29 @@ const scenarios = [
 ];
 
 async function startServer(implementation, protocol, scenario) {
+	const profileName = `${implementation}/${protocol}/${scenario.name}`;
+	const profile = CPU_PROFILE === profileName;
+	if (profile && !CPU_PROFILE_DIR) {
+		throw new Error(
+			"BENCHMARK_CPU_PROFILE_DIR is required with BENCHMARK_CPU_PROFILE",
+		);
+	}
 	const child = fork(
 		new URL("server.js", import.meta.url),
 		[implementation, protocol, scenario.name],
-		{ stdio: ["ignore", "inherit", "inherit", "ipc"] },
+		{
+			stdio: ["ignore", "inherit", "inherit", "ipc"],
+			...(profile
+				? {
+						execArgv: [
+							...process.execArgv,
+							"--cpu-prof",
+							`--cpu-prof-dir=${CPU_PROFILE_DIR}`,
+							`--cpu-prof-name=${implementation}-${protocol.replace("/", "-")}-${scenario.name}.cpuprofile`,
+						],
+					}
+				: {}),
+		},
 	);
 	const exited = new Promise((resolve, reject) => {
 		child.once("error", reject);
@@ -166,65 +187,73 @@ async function batch(request, count) {
 	);
 }
 
-async function measure({ implementation, protocol, scenario, start, client }) {
-	const runningServer = await start(implementation, protocol, scenario);
-	const runningClient = client(runningServer.port, scenario);
+async function sample(request) {
+	const started = performance.now();
+	await batch(request, MEASURED_REQUESTS);
+	return MEASURED_REQUESTS / ((performance.now() - started) / 1_000);
+}
+
+function summarize(implementation, protocol, scenario, samples) {
+	samples.sort((left, right) => left - right);
+	return {
+		implementation,
+		protocol,
+		scenario: scenario.name,
+		median: samples[Math.floor(samples.length / 2)],
+		min: samples[0],
+		max: samples.at(-1),
+	};
+}
+
+async function measurePair(protocol, scenario, createClient) {
+	const nodeServer = await startServer("node", protocol, scenario);
+	const dodiciServer = await startServer("dodici", protocol, scenario);
+	const nodeClient = createClient(nodeServer.port, scenario);
+	const dodiciClient = createClient(dodiciServer.port, scenario);
 	try {
-		await batch(runningClient.request, WARMUP_REQUESTS);
-		const samples = [];
+		// Warm both implementations in alternating order. Timed rounds reverse
+		// order each time so thermal drift and transient host load affect each
+		// side symmetrically instead of favoring whichever server runs first.
+		await batch(nodeClient.request, WARMUP_REQUESTS);
+		await batch(dodiciClient.request, WARMUP_REQUESTS);
+		const nodeSamples = [];
+		const dodiciSamples = [];
 		for (let index = 0; index < SAMPLES; index++) {
-			const started = performance.now();
-			await batch(runningClient.request, MEASURED_REQUESTS);
-			samples.push(MEASURED_REQUESTS / ((performance.now() - started) / 1_000));
+			if (index % 2 === 0) {
+				nodeSamples.push(await sample(nodeClient.request));
+				dodiciSamples.push(await sample(dodiciClient.request));
+			} else {
+				dodiciSamples.push(await sample(dodiciClient.request));
+				nodeSamples.push(await sample(nodeClient.request));
+			}
 		}
-		samples.sort((left, right) => left - right);
-		return {
-			implementation,
-			protocol,
-			scenario: scenario.name,
-			median: samples[Math.floor(samples.length / 2)],
-			min: samples[0],
-			max: samples.at(-1),
-		};
+		return [
+			summarize("node", protocol, scenario, nodeSamples),
+			summarize("dodici", protocol, scenario, dodiciSamples),
+		];
 	} finally {
-		await runningClient.close();
-		await runningServer.close();
+		await Promise.all([nodeClient.close(), dodiciClient.close()]);
+		await Promise.all([nodeServer.close(), dodiciServer.close()]);
 	}
 }
 
-const implementations = [
+const protocols = [
 	{
-		implementation: "node",
 		protocol: "http/1",
-		start: startServer,
 		client: createHttpClient,
 	},
 	{
-		implementation: "dodici",
-		protocol: "http/1",
-		start: startServer,
-		client: createHttpClient,
-	},
-	{
-		implementation: "node",
 		protocol: "h2c",
-		start: startServer,
-		client: createHttp2Client,
-	},
-	{
-		implementation: "dodici",
-		protocol: "h2c",
-		start: startServer,
 		client: createHttp2Client,
 	},
 ];
 
 const results = [];
 for (const scenario of scenarios) {
-	for (const implementation of implementations) {
-		const result = await measure({ ...implementation, scenario });
-		results.push(result);
-		console.log(JSON.stringify(result));
+	for (const { protocol, client } of protocols) {
+		const pair = await measurePair(protocol, scenario, client);
+		for (const result of pair) console.log(JSON.stringify(result));
+		results.push(...pair);
 	}
 }
 

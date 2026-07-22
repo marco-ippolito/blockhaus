@@ -8,7 +8,9 @@ This private package compares Dodici with the corresponding Node core server:
 Both implementations receive the same requests from the same protocol-specific
 client. Every response is validated before its timing contributes to a result.
 Each scenario is warmed up, sampled repeatedly, and reported as median, minimum,
-maximum, and percentage of the matching Node core result.
+maximum, and percentage of the matching Node core result. Node and Dodici stay
+live as a pair for each protocol/scenario, and timed rounds alternate which one
+runs first so thermal drift and transient host load affect both sides evenly.
 The load generator and each server run in separate processes so client work
 cannot starve one server implementation's event loop more than the other's.
 
@@ -39,6 +41,8 @@ The root `npm run benchmark` command delegates here. Available tuning variables:
 | `BENCHMARK_BASELINE` | `baseline.json` | Baseline path relative to this package |
 | `BENCHMARK_BASELINE_METRIC` | `ratio` | Gate on `ratio` or `dodici-rps` |
 | `BENCHMARK_MAX_REGRESSION` | disabled | Maximum slowdown from the selected baseline |
+| `BENCHMARK_CPU_PROFILE` | disabled | Profile one server, e.g. `dodici/http/1/request-header` |
+| `BENCHMARK_CPU_PROFILE_DIR` | required for profiling | Existing directory for the `.cpuprofile` output |
 
 The recap compares the current Dodici/Node ratio with the checked-in
 `baseline.json`; a negative change means the current implementation is slower.
