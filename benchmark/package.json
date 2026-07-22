@@ -1,0 +1,14 @@
+{
+  "name": "@dodici/benchmarks",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reproducible Node core versus Dodici protocol benchmarks",
+  "type": "module",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "benchmark": "node compare.js",
+    "quick": "BENCHMARK_WARMUP=100 BENCHMARK_REQUESTS=500 BENCHMARK_SAMPLES=3 node compare.js"
+  }
+}

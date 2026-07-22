@@ -1,6 +1,7 @@
-.vscode
+.vscode/*
+!.vscode/settings.json
 .DS_Store
 out
 node_modules
 build
-.npmrc
+.claude
