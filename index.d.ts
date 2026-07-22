@@ -1,14 +1,14 @@
 export type Protocol = "h1" | "h2" | "h3";
 
 export declare const diagnosticChannels: Readonly<{
-	serverListening: "dodici.server.listening";
-	serverClose: "dodici.server.close";
-	requestStart: "dodici.request.start";
-	requestEnd: "dodici.request.end";
-	requestReject: "dodici.request.reject";
-	connectStart: "dodici.connect.start";
-	connectEnd: "dodici.connect.end";
-	error: "dodici.error";
+	serverListening: "blockhaus.server.listening";
+	serverClose: "blockhaus.server.close";
+	requestStart: "blockhaus.request.start";
+	requestEnd: "blockhaus.request.end";
+	requestReject: "blockhaus.request.reject";
+	connectStart: "blockhaus.connect.start";
+	connectEnd: "blockhaus.connect.end";
+	error: "blockhaus.error";
 }>;
 
 /** ALPN identifiers offered on TLS. */
@@ -67,6 +67,12 @@ export type DenyReason =
 export interface ServerContext {
 	/** The incoming request, a standard Fetch Request. */
 	readonly request: Request;
+	/** Request URL without constructing the Fetch Request. */
+	readonly url: string;
+	/** Request method without constructing the Fetch Request. */
+	readonly method: string;
+	/** Read a request header without constructing the Fetch Request. */
+	header(name: string): string | null;
 	/** The client's socket address. */
 	readonly remoteAddress: SocketAddress;
 	/** Convenience: the HTTP version that carried the request. */
@@ -122,6 +128,9 @@ export interface Handler {
 export class Context implements ServerContext {
 	constructor(request: Request, metadata: Record<string, unknown>);
 	readonly request: Request;
+	readonly url: string;
+	readonly method: string;
+	header(name: string): string | null;
 	readonly remoteAddress: SocketAddress;
 	readonly httpVersion: "1.1" | "2" | "3";
 	readonly alpnProtocol: string | null;

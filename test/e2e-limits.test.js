@@ -21,6 +21,34 @@ test("h1 rejects oversized header blocks with 431", async () => {
 	}
 });
 
+test("h2 rejects oversized header blocks with 431", async () => {
+	let dispatched = false;
+	const server = await start(
+		() => {
+			dispatched = true;
+			return new Response("ok");
+		},
+		{ tls, maxHeaderSize: 256 },
+	);
+	const client = h2connect(server, cert);
+	try {
+		const stream = client.request({
+			":path": "/",
+			"x-big": "x".repeat(2_000),
+		});
+		const headers = await new Promise((resolve, reject) => {
+			stream.once("response", resolve);
+			stream.once("error", reject);
+		});
+		assert.strictEqual(headers[":status"], 431);
+		assert.strictEqual(dispatched, false);
+		stream.close(http2.constants.NGHTTP2_NO_ERROR);
+	} finally {
+		client.destroy();
+		await server.close();
+	}
+});
+
 test("h1 rejects an over-limit Content-Length with 413", async () => {
 	const server = await start(
 		async (ctx) => new Response(await ctx.request.text()),

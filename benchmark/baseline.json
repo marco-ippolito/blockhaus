@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Dodici throughput as a percentage of matching Node core throughput",
+  "description": "Blockhaus throughput as a percentage of matching Node core throughput",
   "recordedWith": "Node 26.5.0 on darwin-arm64 with isolated server processes",
   "results": {
     "http/1/no-content": 108.1,

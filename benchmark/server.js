@@ -8,53 +8,53 @@ const NO_CONTENT = new Response(null, { status: 204 });
 
 const handlers = {
 	"no-content": {
-		dodici: () => NO_CONTENT,
+		blockhaus: () => NO_CONTENT,
 		nodeHttp: (_request, response) => {
 			response.statusCode = 204;
 			response.end();
 		},
-		nodeHttp2: (stream) => {
-			stream.respond({ ":status": 204 });
-			stream.end();
+		nodeHttp2: (_request, response) => {
+			response.statusCode = 204;
+			response.end();
 		},
 	},
 	"request-url": {
-		dodici: (context) => {
-			void context.request.url;
+		blockhaus: (context) => {
+			void context.url;
 			return new Response("ok");
 		},
 		nodeHttp: (request, response) => {
 			void request.url;
 			response.end("ok");
 		},
-		nodeHttp2: (stream, headers) => {
-			void headers[":path"];
-			stream.respond({ ":status": 200 });
-			stream.end("ok");
+		nodeHttp2: (request, response) => {
+			void request.url;
+			response.end("ok");
 		},
 	},
 	"request-header": {
-		dodici: (context) =>
-			new Response(context.request.headers.get("x-benchmark")),
+		blockhaus: (context) => new Response(context.header("x-benchmark")),
 		nodeHttp: (request, response) => {
 			response.end(request.headers["x-benchmark"]);
 		},
-		nodeHttp2: (stream, headers) => {
-			stream.respond({ ":status": 200 });
-			stream.end(headers["x-benchmark"]);
+		nodeHttp2: (request, response) => {
+			response.end(request.headers["x-benchmark"]);
 		},
 	},
 };
 
 const handler = handlers[scenario];
-if (!handler || !["node", "dodici"].includes(implementation)) {
+if (!handler || !["node", "blockhaus"].includes(implementation)) {
 	throw new Error("invalid benchmark server arguments");
 }
 
 let close;
 let port;
-if (implementation === "dodici") {
-	const server = serve({ fetch: handler.dodici }, { hostname: HOST, port: 0 });
+if (implementation === "blockhaus") {
+	const server = serve(
+		{ fetch: handler.blockhaus },
+		{ hostname: HOST, port: 0 },
+	);
 	await server.listen();
 	port = server.port;
 	close = () => server.close({ force: true });
@@ -62,7 +62,7 @@ if (implementation === "dodici") {
 	const server =
 		protocol === "http/1"
 			? http.createServer(handler.nodeHttp)
-			: http2.createServer().on("stream", handler.nodeHttp2);
+			: http2.createServer(handler.nodeHttp2);
 	await new Promise((resolve, reject) => {
 		server.once("error", reject);
 		server.listen(0, HOST, resolve);

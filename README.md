@@ -1,14 +1,14 @@
-# dodici
+# blockhaus
 
-[![CI](https://github.com/marco-ippolito/dodici/actions/workflows/ci.yml/badge.svg)](https://github.com/marco-ippolito/dodici/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/marco-ippolito/dodici/actions/workflows/codeql.yml/badge.svg)](https://github.com/marco-ippolito/dodici/actions/workflows/codeql.yml)
+[![CI](https://github.com/marco-ippolito/blockhaus/actions/workflows/ci.yml/badge.svg)](https://github.com/marco-ippolito/blockhaus/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/marco-ippolito/blockhaus/actions/workflows/codeql.yml/badge.svg)](https://github.com/marco-ippolito/blockhaus/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-One handler, three HTTP versions. `dodici` runs the same request handler over
+One handler, three HTTP versions. `blockhaus` runs the same request handler over
 HTTP/1.1, HTTP/2, and HTTP/3 on a single port.
 
 ```js
-import { serve } from "dodici";
+import { serve } from "blockhaus";
 
 const server = serve({
 	fetch(ctx) {
@@ -27,7 +27,7 @@ HTTP/2, or HTTP/3, so you write it once.
 ## Install
 
 ```sh
-npm install dodici
+npm install blockhaus
 ```
 
 Requires Node.js v26 or newer. HTTP/3 additionally requires a build with QUIC
@@ -38,11 +38,11 @@ support (see [HTTP/3](#http3)).
 A handler is an object with a `fetch` method. Pass it to `serve`, then listen:
 
 ```js
-import { serve } from "dodici";
+import { serve } from "blockhaus";
 
 const server = serve({
 	async fetch(ctx) {
-		const url = new URL(ctx.request.url);
+		const url = new URL(ctx.url);
 		if (url.pathname === "/echo") {
 			return new Response(ctx.request.body, { headers: { "x-echo": "1" } });
 		}
@@ -52,6 +52,10 @@ const server = serve({
 
 await server.listen({ port: 8080 });
 ```
+
+`ctx.url`, `ctx.method`, and `ctx.header(name)` expose common request metadata
+without constructing the full Fetch `Request`. Access `ctx.request` when the
+body or another Fetch API is needed; it remains lazy until then.
 
 Passing connection options directly to `serve` starts listening immediately, so
 these two forms are equivalent:
@@ -199,12 +203,12 @@ return new Response("ok");
 
 ## Diagnostics and auditing
 
-Dodici publishes structured events through `node:diagnostics_channel`. Import
+Blockhaus publishes structured events through `node:diagnostics_channel`. Import
 `diagnosticChannels` instead of copying channel-name strings:
 
 ```js
 import diagnosticsChannel from "node:diagnostics_channel";
-import { diagnosticChannels } from "dodici";
+import { diagnosticChannels } from "blockhaus";
 
 diagnosticsChannel.subscribe(diagnosticChannels.requestEnd, (event) => {
 	console.log({
@@ -221,14 +225,14 @@ diagnosticsChannel.subscribe(diagnosticChannels.requestEnd, (event) => {
 
 | Export key | Channel | Published when |
 | --- | --- | --- |
-| `serverListening` | `dodici.server.listening` | All configured transports are accepting requests. |
-| `serverClose` | `dodici.server.close` | Server teardown has completed. |
-| `requestStart` | `dodici.request.start` | A Fetch request is admitted for dispatch. |
-| `requestEnd` | `dodici.request.end` | The handler decision settles, before transport serialization. |
-| `requestReject` | `dodici.request.reject` | A malformed or over-limit request is rejected before or during dispatch. |
-| `connectStart` | `dodici.connect.start` | A CONNECT request is admitted. |
-| `connectEnd` | `dodici.connect.end` | The CONNECT handler decision settles. |
-| `error` | `dodici.error` | An internal, handler, background, or transport error is observed. |
+| `serverListening` | `blockhaus.server.listening` | All configured transports are accepting requests. |
+| `serverClose` | `blockhaus.server.close` | Server teardown has completed. |
+| `requestStart` | `blockhaus.request.start` | A Fetch request is admitted for dispatch. |
+| `requestEnd` | `blockhaus.request.end` | The handler decision settles, before transport serialization. |
+| `requestReject` | `blockhaus.request.reject` | A malformed or over-limit request is rejected before or during dispatch. |
+| `connectStart` | `blockhaus.connect.start` | A CONNECT request is admitted. |
+| `connectEnd` | `blockhaus.connect.end` | The CONNECT handler decision settles. |
+| `error` | `blockhaus.error` | An internal, handler, background, or transport error is observed. |
 
 Request events contain stable per-process `serverId` and per-server
 `requestId` values, protocol and remote-address metadata, timestamps, and the
@@ -376,7 +380,7 @@ message in front of it.
 nvm use      # v26
 npm run check # Biome CI, declarations, all tests, and enforced coverage
 npm run fix   # apply Biome-safe formatting and lint fixes
-npm run benchmark # Node core vs Dodici over HTTP/1 and HTTP/2
+npm run benchmark # Node core vs Blockhaus over HTTP/1 and HTTP/2
 ```
 
 `npm test` always runs every regular, security, unit, and end-to-end test with
@@ -385,10 +389,10 @@ coverage threshold and exercised separately with the QUIC-enabled command
 below.
 
 The benchmark runs matching no-content, request URL, and request-header
-workloads against `node:http`, `node:http2`, and Dodici. It validates every
+workloads against `node:http`, `node:http2`, and Blockhaus. It validates every
 response, warms each server, reports the median of five samples, and records
 relative throughput in the workflow summary. Its relative floor is a coarse
-regression guard, not a claim that the APIs have equal costs: Dodici constructs
+regression guard, not a claim that the APIs have equal costs: Blockhaus constructs
 standards-compatible Fetch objects when the handler accesses them.
 
 The HTTP/3 tests self-skip on a binary without QUIC support. To run them, use a

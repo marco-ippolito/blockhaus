@@ -8,12 +8,12 @@ surface. All runnable tests and lint checks pass.
 
 Final validation:
 
-- Stock Node 26: **213 tests, 194 passed, 19 HTTP/3 tests skipped, 0 failed**.
-- QUIC-enabled Node: **211 tests, 207 passed, 4 documented skips, 0 failed**.
+- Stock Node 26: **238 tests, 219 passed, 19 HTTP/3 tests skipped, 0 failed**.
+- QUIC-enabled Node: **236 tests, 232 passed, 4 documented skips, 0 failed**.
 - `npm run check` (Biome, TypeScript, and tests): passes.
 - QUIC capability check: `process.features.quic === true`.
-- Stock source coverage (excluding unavailable HTTP/3): **92.04% lines,
-  86.13% branches, 82.16% functions**.
+- Stock source coverage (excluding unavailable HTTP/3): **93.14% lines,
+  86.17% branches, 79.84% functions**.
 
 Repository hardening added after the implementation audit:
 
@@ -30,6 +30,9 @@ Repository hardening added after the implementation audit:
 - a typed `node:diagnostics_channel` audit surface for server lifecycle,
   admitted requests, pre-handler transport rejections, CONNECT decisions, and
   errors, with stable server/request correlation IDs and timing metadata.
+- lazy Web `Request` construction across every protocol, allocation-free
+  diagnostics when no audit channel is subscribed, and an HTTP/1 throughput
+  benchmark reported by a dedicated CI job.
 
 The adversarial pipelining cases found and fixed an additional issue: after one
 message was rejected inside a Milo parse callback, later messages parsed from
@@ -184,10 +187,10 @@ npm run check
 npm run test:coverage
 npm pack --dry-run --ignore-scripts
 
-cd /Users/marcoippolito/Documents/projects/forks/node
-./node --experimental-quic -p 'process.features.quic'
-./node --experimental-quic --test \
-  --test-concurrency=1 /Users/marcoippolito/Documents/projects/dodici/test/*.test.js
+/Users/marcoippolito/Documents/projects/forks/node/node \
+  --experimental-quic -p 'process.features.quic'
+/Users/marcoippolito/Documents/projects/forks/node/node \
+  --experimental-quic --test --test-concurrency=1 test/*.test.js
 ```
 
 ## Assessment

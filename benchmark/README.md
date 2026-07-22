@@ -1,16 +1,24 @@
-# Dodici benchmarks
+# Blockhaus benchmarks
 
-This private package compares Dodici with the corresponding Node core server:
+This private package compares Blockhaus with the corresponding Node core server:
 
-- `node:http` and Dodici over HTTP/1.1
-- `node:http2` and Dodici over cleartext HTTP/2
+- `node:http` and Blockhaus over HTTP/1.1
+- `node:http2`'s native request/response server API and Blockhaus over cleartext
+  HTTP/2
 
 Both implementations receive the same requests from the same protocol-specific
 client. Every response is validated before its timing contributes to a result.
 Each scenario is warmed up, sampled repeatedly, and reported as median, minimum,
-maximum, and percentage of the matching Node core result.
+maximum, and percentage of the matching Node core result. Node and Blockhaus stay
+live as a pair for each protocol/scenario, and timed rounds alternate which one
+runs first so thermal drift and transient host load affect both sides evenly.
 The load generator and each server run in separate processes so client work
 cannot starve one server implementation's event loop more than the other's.
+Request metadata scenarios use each server's native low-overhead interface:
+Node's `request.url`/`request.headers` and Blockhaus's
+`context.url`/`context.header()`. Response scenarios still exercise the public
+end-to-end response APIs (`response.end()` and Fetch `Response`), not isolated
+serializer functions.
 
 ## Run
 
@@ -31,23 +39,25 @@ The root `npm run benchmark` command delegates here. Available tuning variables:
 
 | Variable | Default | Purpose |
 | --- | ---: | --- |
-| `BENCHMARK_WARMUP` | 500 | Untimed requests before sampling |
-| `BENCHMARK_REQUESTS` | 3000 | Requests in each measured sample |
+| `BENCHMARK_WARMUP` | 1000 | Untimed requests before sampling |
+| `BENCHMARK_REQUESTS` | 10000 | Requests in each measured sample |
 | `BENCHMARK_CONCURRENCY` | 50 | Concurrent request workers |
-| `BENCHMARK_SAMPLES` | 5 | Samples used to select the median |
-| `BENCHMARK_MIN_RELATIVE` | 0.45 | Minimum Dodici/Node throughput ratio |
+| `BENCHMARK_SAMPLES` | 7 | Samples used to select the median |
+| `BENCHMARK_MIN_RELATIVE` | 0.45 | Minimum Blockhaus/Node throughput ratio |
 | `BENCHMARK_BASELINE` | `baseline.json` | Baseline path relative to this package |
-| `BENCHMARK_BASELINE_METRIC` | `ratio` | Gate on `ratio` or `dodici-rps` |
+| `BENCHMARK_BASELINE_METRIC` | `ratio` | Gate on `ratio` or `blockhaus-rps` |
 | `BENCHMARK_MAX_REGRESSION` | disabled | Maximum slowdown from the selected baseline |
+| `BENCHMARK_CPU_PROFILE` | disabled | Profile one server, e.g. `blockhaus/http/1/request-header` |
+| `BENCHMARK_CPU_PROFILE_DIR` | required for profiling | Existing directory for the `.cpuprofile` output |
 
-The recap compares the current Dodici/Node ratio with the checked-in
+The recap compares the current Blockhaus/Node ratio with the checked-in
 `baseline.json`; a negative change means the current implementation is slower.
 Ratios remove much of the variation between machines, but benchmark noise still
 matters. Update the baseline only from repeated full CI runs, never from the
 short smoke command. The relative floor catches major regressions.
 
 GitHub's shared hosted runners have a distinct checked-in `baseline-ci.json`.
-The CI job reports Node-relative ratios but gates on Dodici's own median
+The CI job reports Node-relative ratios but gates on Blockhaus's own median
 throughput because Node core throughput varies substantially between hosted
 VMs. It fails if any scenario is more than 20% slower than the conservative
 hosted baseline. The default 45% Node-relative floor remains active for local
