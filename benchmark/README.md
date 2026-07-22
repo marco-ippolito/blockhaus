@@ -36,7 +36,7 @@ The root `npm run benchmark` command delegates here. Available tuning variables:
 | `BENCHMARK_CONCURRENCY` | 50 | Concurrent request workers |
 | `BENCHMARK_SAMPLES` | 5 | Samples used to select the median |
 | `BENCHMARK_MIN_RELATIVE` | 0.45 | Minimum Dodici/Node throughput ratio |
-| `BENCHMARK_BASELINE` | `baseline.json` | Comparison baseline file |
+| `BENCHMARK_BASELINE` | `baseline.json` | Baseline path relative to this package |
 | `BENCHMARK_MAX_REGRESSION` | disabled | Maximum slowdown from the selected baseline |
 
 The recap compares the current Dodici/Node ratio with the checked-in

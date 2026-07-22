@@ -15,12 +15,11 @@ const MAX_BASELINE_REGRESSION = Number(
 	process.env.BENCHMARK_MAX_REGRESSION ?? Number.POSITIVE_INFINITY,
 );
 const HOST = "127.0.0.1";
-const reference = JSON.parse(
-	await readFile(
-		process.env.BENCHMARK_BASELINE ?? new URL("baseline.json", import.meta.url),
-		"utf8",
-	),
+const referenceUrl = new URL(
+	process.env.BENCHMARK_BASELINE ?? "baseline.json",
+	import.meta.url,
 );
+const reference = JSON.parse(await readFile(referenceUrl, "utf8"));
 
 const scenarios = [
 	{

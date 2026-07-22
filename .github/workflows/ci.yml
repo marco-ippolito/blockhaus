@@ -98,6 +98,6 @@ jobs:
         env:
           # Hosted runners have a distinct performance profile, so compare
           # against their own conservative baseline and fail on regressions.
-          BENCHMARK_BASELINE: "benchmark/baseline-ci.json"
+          BENCHMARK_BASELINE: "baseline-ci.json"
           BENCHMARK_MIN_RELATIVE: "0"
           BENCHMARK_MAX_REGRESSION: "0.20"
