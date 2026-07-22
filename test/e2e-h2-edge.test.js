@@ -156,6 +156,35 @@ test("h2 flushes the first Web Stream chunk before a delayed second chunk", asyn
 	}
 });
 
+test("h2 preserves queued Web Stream chunks around empty chunks", async () => {
+	const server = await start(
+		() =>
+			new Response(
+				new ReadableStream({
+					start(controller) {
+						controller.enqueue(new TextEncoder().encode("one"));
+						controller.enqueue(new Uint8Array());
+						controller.enqueue(new TextEncoder().encode("two"));
+						controller.enqueue(new Uint8Array());
+						controller.enqueue(new TextEncoder().encode("three"));
+						controller.close();
+					},
+				}),
+			),
+		{ tls: { key, cert } },
+	);
+	try {
+		const client = http2.connect(`https://localhost:${server.port}`, {
+			ca: cert,
+		});
+		const { body } = await h2Request(client, { ":path": "/" });
+		client.destroy();
+		assert.strictEqual(body, "onetwothree");
+	} finally {
+		await server.close();
+	}
+});
+
 test("duplicate request headers are combined on h2", async () => {
 	let combined;
 	const server = await start(
