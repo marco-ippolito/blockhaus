@@ -1,8 +1,8 @@
+import { fork } from "node:child_process";
 import { appendFile, readFile } from "node:fs/promises";
 import http from "node:http";
 import http2 from "node:http2";
 import { performance } from "node:perf_hooks";
-import { serve } from "../lib/index.js";
 
 const WARMUP_REQUESTS = Number(process.env.BENCHMARK_WARMUP ?? 500);
 const MEASURED_REQUESTS = Number(process.env.BENCHMARK_REQUESTS ?? 3_000);
@@ -12,7 +12,6 @@ const MIN_RELATIVE_THROUGHPUT = Number(
 	process.env.BENCHMARK_MIN_RELATIVE ?? 0.45,
 );
 const HOST = "127.0.0.1";
-const NO_CONTENT = new Response(null, { status: 204 });
 const reference = JSON.parse(
 	await readFile(
 		process.env.BENCHMARK_BASELINE ?? new URL("baseline.json", import.meta.url),
@@ -25,84 +24,48 @@ const scenarios = [
 		name: "no-content",
 		expectedStatus: 204,
 		expectedBody: "",
-		dodici: () => NO_CONTENT,
-		nodeHttp: (_request, response) => {
-			response.statusCode = 204;
-			response.end();
-		},
-		nodeHttp2: (stream) => {
-			stream.respond({ ":status": 204 });
-			stream.end();
-		},
 	},
 	{
 		name: "request-url",
 		expectedStatus: 200,
 		expectedBody: "ok",
-		dodici: (context) => {
-			void context.request.url;
-			return new Response("ok");
-		},
-		nodeHttp: (request, response) => {
-			void request.url;
-			response.end("ok");
-		},
-		nodeHttp2: (stream, headers) => {
-			void headers[":path"];
-			stream.respond({ ":status": 200 });
-			stream.end("ok");
-		},
 	},
 	{
 		name: "request-header",
 		expectedStatus: 200,
 		expectedBody: "benchmark",
-		dodici: (context) =>
-			new Response(context.request.headers.get("x-benchmark")),
-		nodeHttp: (request, response) => {
-			response.end(request.headers["x-benchmark"]);
-		},
-		nodeHttp2: (stream, headers) => {
-			stream.respond({ ":status": 200 });
-			stream.end(headers["x-benchmark"]);
-		},
 	},
 ];
 
-function listen(server) {
-	return new Promise((resolve, reject) => {
-		server.once("error", reject);
-		server.listen(0, HOST, () => {
-			server.removeListener("error", reject);
-			resolve(server.address().port);
+async function startServer(implementation, protocol, scenario) {
+	const child = fork(
+		new URL("server.js", import.meta.url),
+		[implementation, protocol, scenario.name],
+		{ stdio: ["ignore", "inherit", "inherit", "ipc"] },
+	);
+	const exited = new Promise((resolve, reject) => {
+		child.once("error", reject);
+		child.once("exit", (code, signal) => {
+			if (code === 0) resolve();
+			else reject(new Error(`benchmark server exited: ${code ?? signal}`));
 		});
 	});
-}
-
-function closeNodeServer(server) {
-	return new Promise((resolve, reject) => {
-		server.closeAllConnections?.();
-		server.close((error) => (error ? reject(error) : resolve()));
+	const port = await new Promise((resolve, reject) => {
+		child.once("error", reject);
+		child.once("exit", (code, signal) =>
+			reject(new Error(`benchmark server exited: ${code ?? signal}`)),
+		);
+		child.once("message", (message) => {
+			if (message?.type === "ready") resolve(message.port);
+		});
 	});
-}
-
-async function startNodeHttp(scenario) {
-	const server = http.createServer(scenario.nodeHttp);
-	const port = await listen(server);
-	return { port, close: () => closeNodeServer(server) };
-}
-
-async function startNodeHttp2(scenario) {
-	const server = http2.createServer();
-	server.on("stream", scenario.nodeHttp2);
-	const port = await listen(server);
-	return { port, close: () => closeNodeServer(server) };
-}
-
-async function startDodici(scenario) {
-	const server = serve({ fetch: scenario.dodici }, { hostname: HOST, port: 0 });
-	await server.listen();
-	return { port: server.port, close: () => server.close({ force: true }) };
+	return {
+		port,
+		close: async () => {
+			child.send({ type: "close" });
+			await exited;
+		},
+	};
 }
 
 function validateResponse(scenario, status, body) {
@@ -195,7 +158,7 @@ async function batch(request, count) {
 }
 
 async function measure({ implementation, protocol, scenario, start, client }) {
-	const runningServer = await start(scenario);
+	const runningServer = await start(implementation, protocol, scenario);
 	const runningClient = client(runningServer.port, scenario);
 	try {
 		await batch(runningClient.request, WARMUP_REQUESTS);
@@ -224,25 +187,25 @@ const implementations = [
 	{
 		implementation: "node",
 		protocol: "http/1",
-		start: startNodeHttp,
+		start: startServer,
 		client: createHttpClient,
 	},
 	{
 		implementation: "dodici",
 		protocol: "http/1",
-		start: startDodici,
+		start: startServer,
 		client: createHttpClient,
 	},
 	{
 		implementation: "node",
 		protocol: "h2c",
-		start: startNodeHttp2,
+		start: startServer,
 		client: createHttp2Client,
 	},
 	{
 		implementation: "dodici",
 		protocol: "h2c",
-		start: startDodici,
+		start: startServer,
 		client: createHttp2Client,
 	},
 ];

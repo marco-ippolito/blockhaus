@@ -9,6 +9,8 @@ Both implementations receive the same requests from the same protocol-specific
 client. Every response is validated before its timing contributes to a result.
 Each scenario is warmed up, sampled repeatedly, and reported as median, minimum,
 maximum, and percentage of the matching Node core result.
+The load generator and each server run in separate processes so client work
+cannot starve one server implementation's event loop more than the other's.
 
 ## Run
 
