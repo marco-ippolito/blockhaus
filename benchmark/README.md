@@ -14,6 +14,11 @@ live as a pair for each protocol/scenario, and timed rounds alternate which one
 runs first so thermal drift and transient host load affect both sides evenly.
 The load generator and each server run in separate processes so client work
 cannot starve one server implementation's event loop more than the other's.
+Request metadata scenarios use each server's native low-overhead interface:
+Node's `request.url`/`request.headers` and Dodici's
+`context.url`/`context.header()`. Response scenarios still exercise the public
+end-to-end response APIs (`response.end()` and Fetch `Response`), not isolated
+serializer functions.
 
 ## Run
 

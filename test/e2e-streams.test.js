@@ -5,15 +5,19 @@ import { start } from "./helpers.js";
 
 test("Web ReadableStream responses preserve empty and binary chunks", async () => {
 	const expected = Buffer.from([0, 1, 2, 127, 128, 255]);
+	const firstBacking = Uint8Array.from([99, 0, 1, 2, 99]);
+	const secondBacking = Uint8Array.from([99, 127, 128, 255, 99]);
 	const server = await start(
 		() =>
 			new Response(
 				new ReadableStream({
 					start(controller) {
 						controller.enqueue(new Uint8Array());
-						controller.enqueue(expected.subarray(0, 3));
+						// Exercise non-Buffer views with offsets: the response writer passes
+						// these through without copying the surrounding backing bytes.
+						controller.enqueue(firstBacking.subarray(1, 4));
 						controller.enqueue(new Uint8Array());
-						controller.enqueue(expected.subarray(3));
+						controller.enqueue(secondBacking.subarray(1, 4));
 						controller.close();
 					},
 				}),

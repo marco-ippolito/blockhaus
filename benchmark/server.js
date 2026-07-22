@@ -20,7 +20,7 @@ const handlers = {
 	},
 	"request-url": {
 		dodici: (context) => {
-			void context.request.url;
+			void context.url;
 			return new Response("ok");
 		},
 		nodeHttp: (request, response) => {
@@ -33,8 +33,7 @@ const handlers = {
 		},
 	},
 	"request-header": {
-		dodici: (context) =>
-			new Response(context.request.headers.get("x-benchmark")),
+		dodici: (context) => new Response(context.header("x-benchmark")),
 		nodeHttp: (request, response) => {
 			response.end(request.headers["x-benchmark"]);
 		},

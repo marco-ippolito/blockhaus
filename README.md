@@ -42,7 +42,7 @@ import { serve } from "dodici";
 
 const server = serve({
 	async fetch(ctx) {
-		const url = new URL(ctx.request.url);
+		const url = new URL(ctx.url);
 		if (url.pathname === "/echo") {
 			return new Response(ctx.request.body, { headers: { "x-echo": "1" } });
 		}
@@ -52,6 +52,10 @@ const server = serve({
 
 await server.listen({ port: 8080 });
 ```
+
+`ctx.url`, `ctx.method`, and `ctx.header(name)` expose common request metadata
+without constructing the full Fetch `Request`. Access `ctx.request` when the
+body or another Fetch API is needed; it remains lazy until then.
 
 Passing connection options directly to `serve` starts listening immediately, so
 these two forms are equivalent:
