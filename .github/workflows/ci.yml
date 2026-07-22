@@ -51,7 +51,14 @@ jobs:
         id: node-revision
         working-directory: node
         run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - name: Restore Node build cache
+      - name: Restore QUIC-enabled Node binary
+        id: quic-binary
+        uses: actions/cache@v4
+        with:
+          path: node/out/Release/node
+          key: node-quic-binary-v1-${{ runner.os }}-${{ steps.node-revision.outputs.sha }}
+      - name: Restore incremental Node build cache
+        if: steps.quic-binary.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: node/out
@@ -67,13 +74,16 @@ jobs:
         working-directory: dodici
         run: npm ci
       - name: Install Node build dependencies
+        if: steps.quic-binary.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install --yes ninja-build
       - name: Configure QUIC-enabled Node
+        if: steps.quic-binary.outputs.cache-hit != 'true'
         working-directory: node
         run: ./configure --ninja --experimental-quic
       - name: Build QUIC-enabled Node
+        if: steps.quic-binary.outputs.cache-hit != 'true'
         working-directory: node
         run: ninja -C out/Release -j 4
       - name: Run complete suite with HTTP/3 enabled

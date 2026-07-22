@@ -34,6 +34,10 @@ Stock Node runs skip those tests. Pull requests that touch `lib/h3`, shared
 request handling, limits, trailers, CONNECT, or shutdown should also be checked
 with a QUIC-enabled binary.
 
+CI caches the compiled QUIC-enabled Node binary by the exact upstream Node
+commit. An exact hit skips configure and compilation; misses reuse the latest
+compatible Ninja build tree before saving the new binary.
+
 ## Changes
 
 - Add regression tests for behavior changes and bug fixes.
