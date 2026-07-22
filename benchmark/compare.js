@@ -4,10 +4,10 @@ import http from "node:http";
 import http2 from "node:http2";
 import { performance } from "node:perf_hooks";
 
-const WARMUP_REQUESTS = Number(process.env.BENCHMARK_WARMUP ?? 500);
-const MEASURED_REQUESTS = Number(process.env.BENCHMARK_REQUESTS ?? 3_000);
+const WARMUP_REQUESTS = Number(process.env.BENCHMARK_WARMUP ?? 1_000);
+const MEASURED_REQUESTS = Number(process.env.BENCHMARK_REQUESTS ?? 10_000);
 const CONCURRENCY = Number(process.env.BENCHMARK_CONCURRENCY ?? 50);
-const SAMPLES = Number(process.env.BENCHMARK_SAMPLES ?? 5);
+const SAMPLES = Number(process.env.BENCHMARK_SAMPLES ?? 7);
 const MIN_RELATIVE_THROUGHPUT = Number(
 	process.env.BENCHMARK_MIN_RELATIVE ?? 0.45,
 );

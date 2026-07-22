@@ -34,10 +34,10 @@ The root `npm run benchmark` command delegates here. Available tuning variables:
 
 | Variable | Default | Purpose |
 | --- | ---: | --- |
-| `BENCHMARK_WARMUP` | 500 | Untimed requests before sampling |
-| `BENCHMARK_REQUESTS` | 3000 | Requests in each measured sample |
+| `BENCHMARK_WARMUP` | 1000 | Untimed requests before sampling |
+| `BENCHMARK_REQUESTS` | 10000 | Requests in each measured sample |
 | `BENCHMARK_CONCURRENCY` | 50 | Concurrent request workers |
-| `BENCHMARK_SAMPLES` | 5 | Samples used to select the median |
+| `BENCHMARK_SAMPLES` | 7 | Samples used to select the median |
 | `BENCHMARK_MIN_RELATIVE` | 0.45 | Minimum Dodici/Node throughput ratio |
 | `BENCHMARK_BASELINE` | `baseline.json` | Baseline path relative to this package |
 | `BENCHMARK_BASELINE_METRIC` | `ratio` | Gate on `ratio` or `dodici-rps` |
