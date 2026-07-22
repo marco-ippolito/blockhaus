@@ -67,6 +67,7 @@ jobs:
           key: node-main-quic-build-${{ env.QUIC_BINARY_CACHE_VERSION }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.node-checkout.outputs.commit }}
           restore-keys: |
             node-main-quic-build-${{ env.QUIC_BINARY_CACHE_VERSION }}-${{ runner.os }}-${{ runner.arch }}-
+            node-quic-${{ runner.os }}-
       - uses: actions/setup-node@v6
         with:
           node-version-file: dodici/.nvmrc
