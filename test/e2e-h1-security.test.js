@@ -79,6 +79,17 @@ await rejectsAmbiguousRequest(
 );
 
 await rejectsAmbiguousRequest(
+	"rejects Connection nominating Host",
+	`GET / HTTP/1.1\r\nHost: victim\r\nConnection: keep-alive, HOST\r\n\r\n${SMUGGLED}`,
+);
+
+await rejectsAmbiguousRequest(
+	"rejects Connection nominating Transfer-Encoding",
+	"POST / HTTP/1.1\r\nHost: victim\r\nConnection: transfer-encoding\r\nTransfer-Encoding: chunked\r\n\r\n0\r\n\r\n" +
+		SMUGGLED,
+);
+
+await rejectsAmbiguousRequest(
 	"rejects duplicate Host headers",
 	`GET / HTTP/1.1\r\nHost: victim\r\nHost: attacker\r\n\r\n${SMUGGLED}`,
 );
@@ -119,6 +130,13 @@ await rejectsAmbiguousRequest(
 await rejectsAmbiguousRequest(
 	"rejects forbidden trailer declarations before reading a body",
 	"POST / HTTP/1.1\r\nHost: victim\r\nTransfer-Encoding: chunked\r\nTrailer: Transfer-Encoding\r\n\r\n" +
+		"0\r\n\r\n" +
+		SMUGGLED,
+);
+
+await rejectsAmbiguousRequest(
+	"rejects forbidden fields within a mixed trailer declaration",
+	"POST / HTTP/1.1\r\nHost: victim\r\nTransfer-Encoding: chunked\r\nTrailer: X-Safe, Host, X-Other\r\n\r\n" +
 		"0\r\n\r\n" +
 		SMUGGLED,
 );
