@@ -14,6 +14,13 @@ const MIN_RELATIVE_THROUGHPUT = Number(
 const MAX_BASELINE_REGRESSION = Number(
 	process.env.BENCHMARK_MAX_REGRESSION ?? Number.POSITIVE_INFINITY,
 );
+const BASELINE_METRIC = process.env.BENCHMARK_BASELINE_METRIC ?? "ratio";
+if (!["ratio", "dodici-rps"].includes(BASELINE_METRIC)) {
+	throw new Error("BENCHMARK_BASELINE_METRIC must be ratio or dodici-rps");
+}
+if (MAX_BASELINE_REGRESSION < 0) {
+	throw new Error("BENCHMARK_MAX_REGRESSION must not be negative");
+}
 const HOST = "127.0.0.1";
 const referenceUrl = new URL(
 	process.env.BENCHMARK_BASELINE ?? "baseline.json",
@@ -246,17 +253,32 @@ const recap = results
 				candidate.scenario === result.scenario,
 		);
 		const current = relative(result);
-		const previous = reference.results[resultKey(result)];
+		const gateCurrent = BASELINE_METRIC === "ratio" ? current : result.median;
+		const gateBaseline =
+			BASELINE_METRIC === "ratio"
+				? reference.results[resultKey(result)]
+				: reference.dodiciRequestsPerSecond?.[resultKey(result)];
 		return {
 			protocol: result.protocol,
 			scenario: result.scenario,
 			node: nodeResult.median,
 			dodici: result.median,
 			current,
-			previous,
-			change: previous === undefined ? null : (current / previous - 1) * 100,
+			gateCurrent,
+			gateBaseline,
+			change:
+				gateBaseline === undefined
+					? null
+					: (gateCurrent / gateBaseline - 1) * 100,
 		};
 	});
+
+function formatGateValue(value) {
+	if (value === undefined) return "n/a";
+	return BASELINE_METRIC === "ratio"
+		? `${value.toFixed(1)}%`
+		: `${value.toFixed(0)} req/s`;
+}
 
 console.log("\nPerformance recap (ratios normalize for the current machine):");
 console.table(
@@ -266,8 +288,8 @@ console.table(
 		"Node req/s": row.node.toFixed(0),
 		"Dodici req/s": row.dodici.toFixed(0),
 		"current ratio": `${row.current.toFixed(1)}%`,
-		"previous ratio":
-			row.previous === undefined ? "n/a" : `${row.previous.toFixed(1)}%`,
+		"gate current": formatGateValue(row.gateCurrent),
+		"gate baseline": formatGateValue(row.gateBaseline),
 		change:
 			row.change === null
 				? "n/a"
@@ -283,6 +305,7 @@ const regressions = results.filter(
 const baselineRegressions = recap.filter(
 	(row) => row.change !== null && row.change < -MAX_BASELINE_REGRESSION * 100,
 );
+const missingBaselines = recap.filter((row) => row.gateBaseline === undefined);
 
 if (process.env.GITHUB_STEP_SUMMARY) {
 	const rows = results
@@ -294,18 +317,24 @@ if (process.env.GITHUB_STEP_SUMMARY) {
 	const recapRows = recap
 		.map(
 			(row) =>
-				`| ${row.protocol} | ${row.scenario} | ${row.node.toFixed(0)} | ${row.dodici.toFixed(0)} | ${row.current.toFixed(1)}% | ${row.previous === undefined ? "n/a" : `${row.previous.toFixed(1)}%`} | ${row.change === null ? "n/a" : `${row.change >= 0 ? "+" : ""}${row.change.toFixed(1)}%`} |`,
+				`| ${row.protocol} | ${row.scenario} | ${row.node.toFixed(0)} | ${row.dodici.toFixed(0)} | ${row.current.toFixed(1)}% | ${formatGateValue(row.gateBaseline)} | ${row.change === null ? "n/a" : `${row.change >= 0 ? "+" : ""}${row.change.toFixed(1)}%`} |`,
 		)
 		.join("\n");
 	await appendFile(
 		process.env.GITHUB_STEP_SUMMARY,
-		`## Performance recap\n\nThe change column compares normalized Dodici/Node throughput with the checked-in baseline. Negative means slower.\n\n| Protocol | Scenario | Node req/s | Dodici req/s | Current ratio | Previous ratio | Change |\n| --- | --- | ---: | ---: | ---: | ---: | ---: |\n${recapRows}\n\n<details><summary>Detailed samples</summary>\n\n${SAMPLES} samples of ${MEASURED_REQUESTS.toLocaleString("en-US")} requests after ${WARMUP_REQUESTS.toLocaleString("en-US")} warmups, concurrency ${CONCURRENCY}.\n\n| Protocol | Scenario | Server | Median req/s | Min | Max | Relative |\n| --- | --- | --- | ---: | ---: | ---: | ---: |\n${rows}\n\n</details>\n`,
+		`## Performance recap\n\nThe blocking gate compares ${BASELINE_METRIC === "ratio" ? "the Dodici/Node ratio" : "Dodici throughput"} with the checked-in baseline. Negative means slower.\n\n| Protocol | Scenario | Node req/s | Dodici req/s | Current ratio | Gate baseline | Change |\n| --- | --- | ---: | ---: | ---: | ---: | ---: |\n${recapRows}\n\n<details><summary>Detailed samples</summary>\n\n${SAMPLES} samples of ${MEASURED_REQUESTS.toLocaleString("en-US")} requests after ${WARMUP_REQUESTS.toLocaleString("en-US")} warmups, concurrency ${CONCURRENCY}.\n\n| Protocol | Scenario | Server | Median req/s | Min | Max | Relative |\n| --- | --- | --- | ---: | ---: | ---: | ---: |\n${rows}\n\n</details>\n`,
 	);
 }
 
 if (regressions.length > 0) {
 	throw new Error(
 		`Dodici fell below ${(MIN_RELATIVE_THROUGHPUT * 100).toFixed(0)}% of Node core in: ${regressions.map((result) => `${result.protocol}/${result.scenario}`).join(", ")}`,
+	);
+}
+
+if (missingBaselines.length > 0) {
+	throw new Error(
+		`benchmark baseline is missing: ${missingBaselines.map((row) => `${row.protocol}/${row.scenario}`).join(", ")}`,
 	);
 }
 

@@ -9,5 +9,13 @@
     "h2c/no-content": 65.3,
     "h2c/request-url": 4.5,
     "h2c/request-header": 4.5
+  },
+  "dodiciRequestsPerSecond": {
+    "http/1/no-content": 17000,
+    "http/1/request-url": 1200,
+    "http/1/request-header": 1200,
+    "h2c/no-content": 15000,
+    "h2c/request-url": 1130,
+    "h2c/request-header": 1130
   }
 }

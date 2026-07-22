@@ -37,6 +37,7 @@ The root `npm run benchmark` command delegates here. Available tuning variables:
 | `BENCHMARK_SAMPLES` | 5 | Samples used to select the median |
 | `BENCHMARK_MIN_RELATIVE` | 0.45 | Minimum Dodici/Node throughput ratio |
 | `BENCHMARK_BASELINE` | `baseline.json` | Baseline path relative to this package |
+| `BENCHMARK_BASELINE_METRIC` | `ratio` | Gate on `ratio` or `dodici-rps` |
 | `BENCHMARK_MAX_REGRESSION` | disabled | Maximum slowdown from the selected baseline |
 
 The recap compares the current Dodici/Node ratio with the checked-in
@@ -46,9 +47,11 @@ matters. Update the baseline only from repeated full CI runs, never from the
 short smoke command. The relative floor catches major regressions.
 
 GitHub's shared hosted runners have a distinct checked-in `baseline-ci.json`.
-The CI job fails if any scenario is more than 20% slower than that baseline.
-The default 45% Node-relative floor remains active for local and dedicated
-runner executions.
+The CI job reports Node-relative ratios but gates on Dodici's own median
+throughput because Node core throughput varies substantially between hosted
+VMs. It fails if any scenario is more than 20% slower than the conservative
+hosted baseline. The default 45% Node-relative floor remains active for local
+and dedicated runner executions.
 
 ## Why the runner is local
 
