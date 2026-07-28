@@ -50,8 +50,8 @@
     "prepack": "npm run check"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.5",
-    "@types/node": "^26.1.1",
+    "@biomejs/biome": "^2.5.6",
+    "@types/node": "^26.1.2",
     "typescript": "^7.0.2"
   },
   "dependencies": {
