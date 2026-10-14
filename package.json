@@ -55,6 +55,6 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@perseveranza-pets/milo": "^0.8.0"
+    "@perseveranza-pets/milo": "^0.9.0"
   }
 }
